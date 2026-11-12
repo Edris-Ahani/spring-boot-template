@@ -2,6 +2,8 @@
 
 ## Local tools
 
+Use Node.js 24 and npm 11.21.2 or a newer npm 11 release for host dependency installation. `packageManager` pins npm 11.21.2 for CI and container builds; `.npmrc` rejects unsupported engines during installation. Older npm releases can silently ignore workspace security overrides or report overridden dependencies as invalid. After reviewing your local tool setup, update npm explicitly with `cmd /c npm install --global npm@11.21.2`. Project scripts do not change global host tools automatically.
+
 For native development, `JAVA_HOME` must point to JDK 25, and Java on `PATH` should preferably use the same version. Container execution does not require a host JDK. A global Maven installation is unnecessary: the official wrapper under `backend` downloads the distribution specified in its properties file. The portable JDK used for initial verification was removed afterward and is not part of this project.
 
 `npm run doctor` checks tool versions, Podman connectivity, the Compose provider, and local configuration availability. It also recognizes Podman in its usual per-user Windows installation directory. Set `PODMAN_BIN` for a custom installation. This command does not create or start a virtual machine.
@@ -27,6 +29,8 @@ The default PostgreSQL host port is 15432 to avoid a common local PostgreSQL ins
 | --- | --- |
 | `npm run repository:check` | English repository text, valid JSON, local links, and shared agent entry points |
 | `npm run repository:test` | Regression checks for the repository policy validator |
+| `npm run security:test` | Maven security scan input validation and dependency coverage |
+| `npm run security:npm` | Known npm vulnerabilities, including development dependencies; fails at moderate severity or higher |
 | `npm run backend:unit` | Domain rules, application services, architecture boundaries, HTTP validation, and JWT security |
 | `npm run backend:verify` | The checks above plus Flyway/JPA against real PostgreSQL through Testcontainers |
 | `npm run api:check` | OpenAPI validity, examples, references, and generated type drift |

@@ -17,7 +17,7 @@ Versions were checked against official sources on November 11, 2026. Java depend
 
 ## Quick start on Windows
 
-Container execution requires Node.js 24, Podman with a running machine, and a Compose provider. Running the backend directly also requires JDK 25 and a correctly configured `JAVA_HOME`. The scripts do not install or reconfigure the Podman machine. Run these commands from the project root:
+Container execution requires Node.js 24, Podman with a running machine, and a Compose provider. Host dependency installation requires npm 11.21.2 or a newer npm 11 release. Running the backend directly also requires JDK 25 and a correctly configured `JAVA_HOME`. The scripts do not install or reconfigure the Podman machine. Run these commands from the project root:
 
 ```bat
 cmd /c npm run setup
@@ -93,6 +93,7 @@ All maintained documentation, explanations, comments, and agent instructions are
 - [API conventions and Scalar](docs/api-design.md)
 - [Development and troubleshooting](docs/development.md)
 - [Security and limitations](docs/security.md)
+- [Security policy and private reporting](SECURITY.md)
 - [Deployment, backups, and rollback](docs/deployment.md)
 - [Official sources and versions](docs/sources.md)
 - [Verification results and environment limitations](docs/verification.md)

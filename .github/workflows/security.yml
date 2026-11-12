@@ -1,0 +1,81 @@
+name: Security scans
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: Scan Git history for secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$archive"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/security-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/security-bin" gitleaks
+      - name: Reject secrets without printing their values
+        run: '"$RUNNER_TEMP/security-bin/gitleaks" git --redact=100 --no-banner --log-opts="--all" .'
+
+  dependencies:
+    name: Audit npm and resolved Maven dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Use the supported npm release
+        run: npm install --global npm@11.21.2 --no-fund --no-audit
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - run: npm run security:test
+      - name: Audit production and development npm dependencies
+        run: npm run security:npm
+      - name: Resolve the complete Maven dependency tree
+        run: |
+          chmod +x backend/mvnw
+          backend/mvnw -B -ntp -f backend/pom.xml \
+            org.apache.maven.plugins:maven-dependency-plugin:3.10.0:tree \
+            -DoutputType=json -DoutputFile="$RUNNER_TEMP/maven-dependencies.json"
+          node scripts/maven-scan-input.mjs "$RUNNER_TEMP/maven-dependencies.json" "$RUNNER_TEMP/maven-osv.json"
+      - name: Install checksum-pinned OSV-Scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          scanner="$RUNNER_TEMP/osv-scanner"
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 \
+            https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64 \
+            --output "$scanner"
+          echo "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8  $scanner" | sha256sum --check --strict
+          chmod +x "$scanner"
+      - name: Reject known vulnerabilities in resolved Maven dependencies
+        run: '"$RUNNER_TEMP/osv-scanner" scan source --lockfile="osv-scanner:$RUNNER_TEMP/maven-osv.json"'

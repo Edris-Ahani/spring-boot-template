@@ -25,6 +25,7 @@ jobs:
           node-version: '24'
       - run: npm run repository:check
       - run: npm run repository:test
+      - run: npm run security:test
 
   backend:
     runs-on: ubuntu-latest
@@ -65,6 +66,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - name: Use the supported npm release
+        run: npm install --global npm@11.21.2 --no-fund --no-audit
       - run: npm ci --no-fund
       - run: npm run api:check
       - run: npm run check
@@ -98,6 +101,7 @@ jobs:
           sudo apt-get install --yes podman-compose
       - name: Build and verify the complete Podman stack
         run: |
+          npm install --global npm@11.21.2 --no-fund --no-audit
           npm ci --no-fund
           npm exec --workspace frontend -- playwright install --with-deps chromium
           node scripts/platform.mjs setup

@@ -1,0 +1,134 @@
+name: ${COMPOSE_PROJECT_NAME:-foundry}
+
+x-sandbox: &sandbox
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  restart: unless-stopped
+
+services:
+  postgres:
+    <<: *sandbox
+    image: docker.io/library/postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: ${DATABASE_USERNAME:-platform}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Run npm run setup}
+    ports: ["127.0.0.1:${POSTGRES_PORT:-15432}:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql"]
+    # The entrypoint needs these capabilities only to initialize its data volume.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+    networks: [data]
+
+  identity-db:
+    <<: *sandbox
+    image: docker.io/library/postgres:18.6-alpine
+    environment:
+      POSTGRES_DB: identity
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: ${IDENTITY_DATABASE_PASSWORD:?Run npm run setup}
+    volumes: ["identity-data:/var/lib/postgresql"]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "identity", "-d", "identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 384m
+    networks: [identity-data]
+
+  identity:
+    <<: *sandbox
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Run npm run setup}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://identity-db:5432/identity
+      KC_DB_USERNAME: identity
+      KC_DB_PASSWORD: ${IDENTITY_DATABASE_PASSWORD:?Run npm run setup}
+      KC_HOSTNAME: http://localhost:8180
+      KC_HEALTH_ENABLED: "true"
+      CATALOG_CLIENT_SECRET: ${CATALOG_CLIENT_SECRET:?Run npm run setup}
+    ports: ["127.0.0.1:8180:8080"]
+    volumes: ["./keycloak/platform-realm.json:/opt/keycloak/data/import/platform-realm.json:ro,Z"]
+    depends_on:
+      identity-db: { condition: service_healthy }
+    mem_limit: 768m
+    networks: [identity-data, identity]
+
+  api:
+    <<: *sandbox
+    profiles: [app]
+    image: localhost/foundry-api:dev
+    build:
+      context: ..
+      dockerfile: backend/Containerfile
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/platform
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-platform}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Run npm run setup}
+      OIDC_ISSUER_URI: http://localhost:8180/realms/platform
+      OIDC_JWK_SET_URI: http://identity:8080/realms/platform/protocol/openid-connect/certs
+      OIDC_AUDIENCE: platform-api
+      PLATFORM_API_DOCS_ENABLED: "true"
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError
+    ports: ["127.0.0.1:8080:8080"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=128m"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      identity: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 4s
+      start_period: 60s
+      retries: 10
+    stop_grace_period: 35s
+    mem_limit: 768m
+    networks: [data, identity, application]
+
+  web:
+    <<: *sandbox
+    profiles: [app]
+    image: localhost/foundry-web:dev
+    build:
+      context: ..
+      dockerfile: frontend/Containerfile
+    environment:
+      BACKEND_URL: http://api:8080
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports: ["127.0.0.1:3000:3000"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    stop_grace_period: 15s
+    mem_limit: 384m
+    networks: [application]
+
+volumes:
+  postgres-data:
+  identity-data:
+
+networks:
+  data:
+  identity-data:
+    internal: true
+  identity:
+  application:

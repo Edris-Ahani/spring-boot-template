@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+**/.env*
+**/node_modules
+**/.next
+**/target
+**/test-results
+**/playwright-report
+.tools
+tooling/vendor
+secrets
+*.log

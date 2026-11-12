@@ -1,0 +1,16 @@
+app.example.com {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    reverse_proxy 127.0.0.1:3000
+}
+
+api.example.com {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    request_body {
+        max_size 64KB
+    }
+    @internal path /actuator/* /livez /readyz
+    respond @internal 404
+    reverse_proxy 127.0.0.1:8080
+}

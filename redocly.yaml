@@ -1,0 +1,7 @@
+extends:
+  - recommended-strict
+rules:
+  # A license must be selected by the project owner before publishing.
+  info-license: off
+  # The relative root intentionally keeps interactive requests on the current origin.
+  no-server-trailing-slash: off

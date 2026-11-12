@@ -1,0 +1,95 @@
+# Private environment files; placeholder-only examples remain versioned.
+.env
+.env.*
+*.env
+*.env.*
+!*.env.example
+!.env.*.example
+!*.env.*.example
+.envrc
+.direnv/
+
+# Credentials, private keys, and local keystores.
+secrets/
+.secrets/
+.ssh/
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+
+# Maven output and local dependency caches. Keep .mvn/ and the wrappers.
+target/
+.m2/
+*.class
+pom.xml.versionsBackup
+pom.xml.releaseBackup
+release.properties
+
+# Node.js, Next.js, and generated TypeScript metadata.
+node_modules/
+.next/
+/frontend/out/
+next-env.d.ts
+*.tsbuildinfo
+.npm/
+.cache/
+.eslintcache
+.vercel/
+
+# Test output and browser authentication state.
+coverage/
+playwright-report/
+test-results/
+.auth/
+.playwright-cli/
+
+# Reproducible agent downloads and local tools.
+/.tools/
+/tooling/vendor/
+
+# Local agent credentials and sessions; shared instruction files stay versioned.
+.claude/settings.local.json
+.claude/.credentials.json
+.claude/projects/
+.gemini/oauth_creds.json
+.gemini/google_accounts.json
+.gemini/tmp/
+.codex/auth.json
+.codex/history.jsonl
+.codex/sessions/
+.codex/log/
+
+# Local database backups. Flyway .sql migrations must remain versioned.
+/backups/
+/dumps/
+*.dump
+*.dump.gz
+*.backup
+*.sql.gz
+
+# Logs and JVM diagnostic output.
+*.log
+*.log.*
+*.hprof
+*.jfr
+hs_err_pid*
+replay_pid*
+
+# Local IDE and operating system files.
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

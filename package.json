@@ -1,0 +1,33 @@
+{
+  "name": "spring-next-platform",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": ">=24 <25" },
+  "workspaces": ["frontend"],
+  "scripts": {
+    "doctor": "node scripts/platform.mjs doctor",
+    "setup": "node scripts/platform.mjs setup",
+    "infra:up": "node scripts/platform.mjs infra-up",
+    "stack:up": "node scripts/platform.mjs stack-up",
+    "stack:build": "node scripts/platform.mjs stack-build",
+    "stack:start": "node scripts/platform.mjs stack-start",
+    "stack:down": "node scripts/platform.mjs stack-down",
+    "skills:sync": "node scripts/sync-agent-references.mjs",
+    "api:lint": "redocly lint contracts/openapi.yaml",
+    "api:generate": "npm run api:generate --workspace frontend",
+    "api:check": "npm run api:lint && npm run api:check --workspace frontend",
+    "repository:check": "node scripts/verify-repository.mjs",
+    "repository:test": "node --test scripts/verify-repository.test.mjs",
+    "check": "npm run check --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "test": "npm run test --workspace frontend",
+    "test:e2e": "npm run test:e2e --workspace frontend",
+    "test:api-reference": "npm run test:api-reference --workspace frontend",
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "backend:verify": "node scripts/platform.mjs backend-verify",
+    "backend:unit": "node scripts/platform.mjs backend-unit"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.77.0"
+  }
+}

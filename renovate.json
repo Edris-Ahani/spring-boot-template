@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "docker:pinDigests"],
+  "enabledManagers": ["dockerfile", "docker-compose"],
+  "dockerfile": { "managerFilePatterns": ["/(^|/)Containerfile$/"] },
+  "docker-compose": { "managerFilePatterns": ["/(^|/)compose\\.ya?ml$/"] },
+  "labels": ["dependencies"],
+  "automerge": false
+}

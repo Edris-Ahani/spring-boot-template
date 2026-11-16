@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogPageSchema, parsePageNumber } from "./catalog-schema";
+import { catalogPageSchema, catalogPagination, parsePageNumber } from "./catalog-schema";
 
 describe("catalog contract", () => {
   it("accepts an empty page from the backend", () => {
@@ -17,5 +17,16 @@ describe("catalog contract", () => {
   it("accepts valid bounded pages", () => {
     expect(parsePageNumber("12")).toBe(12);
     expect(parsePageNumber("10000")).toBe(10000);
+  });
+
+  it("stops navigation at the API page limit even when more data exists", () => {
+    expect(catalogPagination(9999, 10002)).toEqual({ previousPage: 9998, nextPage: 10000 });
+    expect(catalogPagination(10000, 10002)).toEqual({ previousPage: 9999, nextPage: null });
+    expect(catalogPagination(0, 1)).toEqual({ previousPage: null, nextPage: null });
+    expect(catalogPagination(1, 2)).toEqual({ previousPage: 0, nextPage: null });
+  });
+
+  it("rejects response page numbers outside the OpenAPI bound", () => {
+    expect(catalogPageSchema.safeParse({ items: [], page: 10001, size: 12, totalElements: 0, totalPages: 0 }).success).toBe(false);
   });
 });

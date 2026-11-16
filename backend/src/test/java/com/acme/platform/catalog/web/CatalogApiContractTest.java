@@ -14,6 +14,7 @@ import com.acme.platform.catalog.domain.CatalogItem;
 import com.acme.platform.platform.security.SecurityConfiguration;
 import com.acme.platform.platform.security.SecurityProblemHandler;
 import com.acme.platform.platform.web.ApiExceptionHandler;
+import com.acme.platform.support.OpenApiContract;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -27,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -37,13 +37,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.SafeConstructor;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
-@WebMvcTest(controllers = CatalogController.class)
+@WebMvcTest
 @Import({SecurityConfiguration.class, SecurityProblemHandler.class, ApiExceptionHandler.class})
 class CatalogApiContractTest {
     private static final String PATH = "/api/v1/catalog";
@@ -51,9 +47,6 @@ class CatalogApiContractTest {
 
     @Autowired
     private MockMvc mvc;
-
-    @Autowired
-    private ObjectMapper mapper;
 
     @Autowired
     @Qualifier("requestMappingHandlerMapping")
@@ -66,13 +59,12 @@ class CatalogApiContractTest {
     private JwtDecoder decoder;
 
     private JsonNode contract;
+    private OpenApiContract responseContract;
 
     @BeforeEach
     void loadCanonicalContract() throws Exception {
-        try (var stream = new ClassPathResource("api-reference/openapi.yaml").getInputStream()) {
-            Object document = new Yaml(new SafeConstructor(new LoaderOptions())).load(stream);
-            contract = mapper.valueToTree(document);
-        }
+        responseContract = new OpenApiContract();
+        contract = responseContract.document();
     }
 
     @Test
@@ -97,24 +89,27 @@ class CatalogApiContractTest {
     @Test
     void successfulReadAndWriteResponsesMatchTheDocumentedFields() throws Exception {
         given(service.list(anyInt(), anyInt())).willReturn(new CatalogRepository.CatalogPage(List.of(), 0, 12, 0, 0));
-        assertResponse(get(PATH), "get", 200, "CatalogPage");
+        assertResponse(get(PATH), "get", 200);
+        var item = new CatalogItem(UUID.randomUUID(), "contract-item", "Contract item", "", Instant.EPOCH);
+        given(service.list(anyInt(), anyInt())).willReturn(new CatalogRepository.CatalogPage(List.of(item), 0, 12, 1, 1));
+        assertResponse(get(PATH), "get", 200);
         given(service.create(anyString(), anyString(), anyString())).willReturn(
                 new CatalogItem(UUID.randomUUID(), "contract-item", "Contract item", "", Instant.EPOCH));
-        assertResponse(write().content(BODY), "post", 201, "CatalogItem");
+        assertResponse(write().content(BODY), "post", 201);
     }
 
     @Test
     void authenticationAndAuthorizationErrorsUseTheSameCorrelatedProblemContract() throws Exception {
-        assertResponse(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY), "post", 401, "Problem");
-        assertResponse(post(PATH).with(jwt()).contentType(MediaType.APPLICATION_JSON).content(BODY), "post", 403, "Problem");
+        assertResponse(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY), "post", 401);
+        assertResponse(post(PATH).with(jwt()).contentType(MediaType.APPLICATION_JSON).content(BODY), "post", 403);
     }
 
     @Test
     void invalidJsonPaginationAndFieldValidationAreSanitizedAndCorrelated() throws Exception {
-        assertResponse(write().content("{\"name\":\"secret-input\","), "post", 400, "Problem");
-        assertResponse(get(PATH).param("page", "secret-input"), "get", 400, "Problem");
-        assertResponse(get(PATH).param("size", "51"), "get", 400, "Problem");
-        JsonNode invalid = assertResponse(write().content("{\"slug\":\"secret-input!\",\"name\":\"\",\"description\":\"\"}"), "post", 400, "Problem");
+        assertResponse(write().content("{\"name\":\"secret-input\","), "post", 400);
+        assertResponse(get(PATH).param("page", "secret-input"), "get", 400);
+        assertResponse(get(PATH).param("size", "51"), "get", 400);
+        JsonNode invalid = assertResponse(write().content("{\"slug\":\"secret-input!\",\"name\":\"\",\"description\":\"\"}"), "post", 400);
         assertThat(invalid.path("invalidFields").toString()).contains("slug", "name");
     }
 
@@ -122,15 +117,15 @@ class CatalogApiContractTest {
     void conflictAndUnexpectedFailuresDoNotLeakDatabaseDetails() throws Exception {
         given(service.create(anyString(), anyString(), anyString())).willThrow(
                 new DataIntegrityViolationException("secret-input", new SQLException("secret-input", "23505")));
-        assertResponse(write().content(BODY), "post", 409, "Problem");
+        assertResponse(write().content(BODY), "post", 409);
         given(service.list(anyInt(), anyInt())).willThrow(new IllegalStateException("secret-input"));
-        assertResponse(get(PATH), "get", 500, "Problem");
+        assertResponse(get(PATH), "get", 500);
     }
 
     @Test
     void unsupportedRequestAndResponseMediaTypesHaveDocumentedProblems() throws Exception {
-        assertResponse(write().contentType(MediaType.TEXT_PLAIN).content("secret-input"), "post", 415, "Problem");
-        assertResponse(get(PATH).accept(MediaType.APPLICATION_XML), "get", 406, "Problem");
+        assertResponse(write().contentType(MediaType.TEXT_PLAIN).content("secret-input"), "post", 415);
+        assertResponse(get(PATH).accept(MediaType.APPLICATION_XML), "get", 406);
     }
 
     private MockHttpServletRequestBuilder write() {
@@ -138,7 +133,7 @@ class CatalogApiContractTest {
                 .contentType(MediaType.APPLICATION_JSON);
     }
 
-    private JsonNode assertResponse(MockHttpServletRequestBuilder request, String method, int status, String schema) throws Exception {
+    private JsonNode assertResponse(MockHttpServletRequestBuilder request, String method, int status) throws Exception {
         MvcResult result = mvc.perform(request.header("X-Request-ID", "untrusted-request-id")).andReturn();
         var response = result.getResponse();
         assertThat(response.getStatus()).isEqualTo(status);
@@ -148,10 +143,7 @@ class CatalogApiContractTest {
         assertThat(UUID.fromString(requestId).toString()).isEqualTo(requestId);
         assertThat(response.getContentType()).startsWith(status >= 400 ? "application/problem+json" : "application/json");
         String content = response.getContentAsString(StandardCharsets.UTF_8);
-        JsonNode body = mapper.readTree(content);
-        JsonNode definition = contract.path("components").path("schemas").path(schema);
-        definition.path("required").forEach(field -> assertThat(body.hasNonNull(field.asText())).as(field.asText()).isTrue());
-        assertThat(definition.path("properties").propertyNames()).containsAll(body.propertyNames());
+        JsonNode body = responseContract.assertResponse(method, PATH, response);
         if (status >= 400) {
             assertThat(body.path("status").asInt()).isEqualTo(status);
             assertThat(body.path("type").asText()).isEqualTo("about:blank");

@@ -14,7 +14,9 @@ The sample API accepts bearer tokens and has no authentication sessions or cooki
 
 Base database and identity settings have no production defaults. An incomplete configuration must fail. The local profile supplies development addresses only; a database password is still required. Production reads the password from a secret-file config tree.
 
-Unexpected failures return generic responses. Application logs record the exception type and request identifier, not exception messages, request bodies, or tokens. SQL bind logging and raw JDBC error logging are disabled. Do not enable DEBUG or TRACE in production. Detailed database diagnostics belong in a controlled environment with restricted access.
+Unexpected failures return generic responses. Backend failure events record the exception type, a bounded cause type, up to five application code locations, and the request identifier from MDC. They omit exception messages, raw stack traces, request bodies, SQL parameters, and tokens. SQL bind logging and raw JDBC error logging are disabled. Do not enable DEBUG or TRACE in production. Detailed database diagnostics belong in a controlled environment with restricted access.
+
+The server-side frontend adapter emits a structured failure category (`configuration`, `network`, `timeout`, `http`, or `invalid_response`), the operation, and the HTTP status when available. It retains only UUID-shaped backend request identifiers. It never logs the response body, the configured backend URL, arbitrary headers, or caught exception messages. A validated identifier may be displayed as a support reference in the recoverable catalog state; it is not an authentication credential.
 
 The server generates request identifiers and never puts arbitrary client values into MDC. Keep the response `X-Request-ID` for troubleshooting. This identifier does not replace distributed tracing.
 

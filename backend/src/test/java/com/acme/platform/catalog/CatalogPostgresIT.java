@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +25,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(properties = {
+        "spring.jpa.properties.hibernate.generate_statistics=true",
         "spring.security.oauth2.resourceserver.jwt.issuer-uri=https://identity.example.test/realms/platform",
         "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=https://identity.example.test/certs",
         "spring.security.oauth2.resourceserver.jwt.audiences=platform-api"
@@ -32,6 +35,21 @@ import org.testcontainers.utility.DockerImageName;
 class CatalogPostgresIT {
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+
+    @Test
+    void creatingAnItemExecutesOneInsertWithoutAReadBeforeIt() throws Exception {
+        var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.clear();
+        String body = "{\"slug\":\"insert-" + UUID.randomUUID() + "\",\"name\":\"Insert only\",\"description\":\"\"}";
+        mvc.perform(post("/api/v1/catalog").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_catalog:write")))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        assertThat(statistics.getEntityInsertCount()).isEqualTo(1);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(1);
+    }
 
     @Test
     void migrationsPersistencePaginationAndUniqueConstraintsWorkTogether() throws Exception {

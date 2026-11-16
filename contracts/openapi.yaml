@@ -115,6 +115,7 @@ components:
   schemas:
     CatalogItem:
       type: object
+      additionalProperties: false
       required: [id, slug, name, description, createdAt]
       properties:
         id: { type: string, format: uuid }
@@ -131,6 +132,7 @@ components:
         description: { type: string, maxLength: 1000 }
     CatalogPage:
       type: object
+      additionalProperties: false
       required: [items, page, size, totalElements, totalPages]
       properties:
         items:
@@ -143,6 +145,7 @@ components:
         totalPages: { type: integer, minimum: 0 }
     Problem:
       type: object
+      additionalProperties: false
       description: An RFC 9457 problem with sanitized details and a server-generated correlation identifier.
       required: [type, status, title, detail, instance, requestId]
       properties:

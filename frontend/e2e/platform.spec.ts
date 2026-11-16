@@ -10,7 +10,7 @@ test("renders catalog data through the server-side backend adapter", async ({ pa
 
 test("shows a recoverable state when catalog requests fail", async ({ page }) => {
   await page.goto("/?page=1");
-  await expect(page.getByRole("heading", { name: "Your API is not reachable yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Catalog temporarily unavailable" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh", exact: true })).toHaveCount(2);
 });
 

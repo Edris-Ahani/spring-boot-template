@@ -1,16 +1,19 @@
 import Link from "next/link";
-import { getCatalog } from "@/lib/backend";
+import { BackendFailure, getCatalog } from "@/lib/backend";
+import { catalogPagination } from "@/lib/catalog-schema";
 import { RefreshButton } from "./refresh-button";
 
 export async function CatalogPanel({ page }: { page: number }) {
   let catalog;
   try {
     catalog = await getCatalog(page);
-  } catch {
+  } catch (error) {
+    const requestId = error instanceof BackendFailure ? error.requestId : undefined;
     return <section className="empty-state" aria-labelledby="catalog-unavailable">
       <div className="empty-icon" aria-hidden="true">↗</div>
-      <h3 id="catalog-unavailable">Your API is not reachable yet</h3>
-      <p>Start the platform stack, then refresh to load your catalog from PostgreSQL.</p>
+      <h3 id="catalog-unavailable">Catalog temporarily unavailable</h3>
+      <p>Try refreshing. If the problem continues, contact support.</p>
+      {requestId ? <p>Reference: <code>{requestId}</code></p> : null}
       <RefreshButton />
     </section>;
   }
@@ -24,6 +27,7 @@ export async function CatalogPanel({ page }: { page: number }) {
     </section>;
   }
 
+  const { previousPage, nextPage } = catalogPagination(page, catalog.totalPages);
   return <>
     <div className="catalog-grid">{catalog.items.map((item) => <article className="catalog-card" key={item.id}>
       <span className="item-icon" aria-hidden="true">◇</span>
@@ -34,8 +38,8 @@ export async function CatalogPanel({ page }: { page: number }) {
     </article>)}</div>
     <nav className="pagination" aria-label="Catalog pagination">
       <span>{catalog.totalElements} items · Page {page + 1} of {catalog.totalPages}</span>
-      <div>{page > 0 ? <Link className="button button-secondary" href={`/?page=${page - 1}`}>Previous</Link> : null}
-        {page + 1 < catalog.totalPages ? <Link className="button button-secondary" href={`/?page=${page + 1}`}>Next</Link> : null}</div>
+      <div>{previousPage !== null ? <Link className="button button-secondary" href={`/?page=${previousPage}`}>Previous</Link> : null}
+        {nextPage !== null ? <Link className="button button-secondary" href={`/?page=${nextPage}`}>Next</Link> : null}</div>
     </nav>
   </>;
 }

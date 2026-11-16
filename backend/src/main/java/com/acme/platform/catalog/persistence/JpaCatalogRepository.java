@@ -2,6 +2,7 @@ package com.acme.platform.catalog.persistence;
 
 import com.acme.platform.catalog.application.CatalogRepository;
 import com.acme.platform.catalog.domain.CatalogItem;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
@@ -10,14 +11,19 @@ import org.springframework.stereotype.Repository;
 class JpaCatalogRepository implements CatalogRepository {
     private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
     private final SpringDataCatalogRepository repository;
+    private final EntityManager entityManager;
 
-    JpaCatalogRepository(SpringDataCatalogRepository repository) {
+    JpaCatalogRepository(SpringDataCatalogRepository repository, EntityManager entityManager) {
         this.repository = repository;
+        this.entityManager = entityManager;
     }
 
     @Override
     public CatalogItem save(CatalogItem item) {
-        return repository.saveAndFlush(new CatalogItemEntity(item)).toDomain();
+        var entity = new CatalogItemEntity(item);
+        entityManager.persist(entity);
+        entityManager.flush();
+        return entity.toDomain();
     }
 
     @Override

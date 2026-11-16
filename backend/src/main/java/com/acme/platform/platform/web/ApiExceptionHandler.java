@@ -35,8 +35,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ProblemDetail internalFailure(Exception exception) {
-        // Exception messages and stack traces can contain SQL parameters or credentials.
-        LOG.error("Request failed; exceptionType={}", exception.getClass().getSimpleName());
+        var diagnostic = FailureDiagnostics.describe(exception);
+        // Record code locations and types without exception messages, arguments, or raw stack traces.
+        LOG.atError().addKeyValue("event", "request_failed")
+                .addKeyValue("exceptionType", diagnostic.exceptionType())
+                .addKeyValue("causeType", diagnostic.causeType())
+                .addKeyValue("applicationFrames", diagnostic.applicationFrames())
+                .log("Request failed");
         return ApiProblems.create(HttpStatus.INTERNAL_SERVER_ERROR, "The request could not be completed");
     }
 

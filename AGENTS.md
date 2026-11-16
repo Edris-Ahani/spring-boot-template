@@ -15,6 +15,7 @@
 ## Scope and safety
 
 - Read `docs/architecture.md` and `docs/development.md` before changing behavior.
+- For new features, follow `docs/adding-a-feature.md` and its reference file map and verification workflow.
 - On Windows, execute shell commands through `cmd /c`. Do not start persistent agent shell sessions.
 - Do not commit, push, deploy, rotate credentials, remove volumes, or change machine configuration without an explicit user request.
 - Do not read `.env` or secret contents into agent output. Never log tokens or request bodies.
@@ -42,6 +43,8 @@
 
 ## Verification
 
+- Use `npm run verify:quick` for host checks and `npm run verify:full` after preparing all runtime prerequisites documented in `docs/adding-a-feature.md`. Full verification must not silently skip unavailable prerequisites.
+- Run `npm run api:compatibility -- <base-ref>` for contract changes; response-schema tests alone do not detect an incompatible simultaneous implementation and contract edit.
 - Repository language, local links, and agent entry points: `npm run repository:check` and `npm run repository:test`.
 - Backend unit/security/architecture checks: `npm run backend:unit`.
 - Backend complete verification, requiring a compatible container socket: `npm run backend:verify`.

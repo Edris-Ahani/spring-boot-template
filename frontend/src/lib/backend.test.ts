@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-import { backendReady, getCatalog } from "./backend";
+import { BackendFailure, backendReady, getCatalog } from "./backend";
 
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+beforeEach(() => { vi.spyOn(console, "error").mockImplementation(() => {}); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("backend adapter", () => {
   it("sends uncached server-side requests to the configured origin", async () => {
@@ -37,5 +38,33 @@ describe("backend adapter", () => {
     vi.stubGlobal("fetch", fetcher);
     await expect(getCatalog(0)).rejects.toThrow();
     expect(fetcher).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(expect.not.stringContaining("secret"));
+  });
+
+  it("retains a validated support reference and status without logging response data", async () => {
+    const requestId = "06a64cb2-dcf2-4f69-a3cb-34254ef2c9a1";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ secret: "private-response" },
+      { status: 503, headers: { "X-Request-ID": requestId } })));
+    await expect(getCatalog(0)).rejects.toMatchObject({ kind: "http", status: 503, requestId });
+    const message = vi.mocked(console.error).mock.calls[0]?.[0] as string;
+    expect(JSON.parse(message)).toEqual({ event: "backend_request_failed", operation: "catalog", kind: "http", status: 503, requestId });
+    expect(message).not.toContain("private-response");
+  });
+
+  it("distinguishes malformed response data from network failures", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ secret: "private-response" })));
+    await expect(getCatalog(0)).rejects.toMatchObject({ kind: "invalid_response", status: 200 });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("private-network-details")));
+    await expect(getCatalog(0)).rejects.toMatchObject({ kind: "network" });
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/private-response|private-network-details/);
+  });
+
+  it("classifies timeouts and drops arbitrary request identifiers", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("private-timeout", "TimeoutError")));
+    await expect(getCatalog(0)).rejects.toMatchObject({ kind: "timeout" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("private-body", { status: 500,
+      headers: { "X-Request-ID": "untrusted-private-value" } })));
+    await expect(getCatalog(0)).rejects.toBeInstanceOf(BackendFailure);
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/private-|untrusted/);
   });
 });

@@ -1,5 +1,48 @@
 # Verification record
 
+## Review corrections and complete local verification: November 16, 2026
+
+The review corrections add feature-wide architecture enforcement and invalid-fixture regression coverage, bounded safe failure diagnostics, explicit insert-only catalog persistence, and frontend pagination aligned with the API maximum. The frontend records sanitized failure categories and validated support identifiers instead of treating every failure as a network outage.
+
+The compatibility workflow compares the current contract with the PR target commit or preceding push commit using pinned oasdiff v1.38.0. A real negative fixture proves that a response-type change is rejected. New contributor guidance maps the catalog reference files and explains the feature workflow. The `verify:quick` and `verify:full` entry points group the documented checks; the commands below were invoked individually in this verification.
+
+| Check | Observed result |
+| --- | --- |
+| `npm run backend:verify` on Windows with Corretto 25.0.5 and Podman | 57 unit/security/architecture/contract tests and two real PostgreSQL integration tests passed; zero failures, errors, or skips |
+| Insert query count | PostgreSQL creation prepared exactly one statement and inserted one entity; duplicate-slug HTTP behavior also passed |
+| `npm test` | 20 frontend tests passed, including diagnostic redaction and the page-limit regression |
+| `npm run check` and `npm run build` | ESLint, TypeScript, and the production Next.js build passed |
+| `npm run api:compatibility:test` | Unchanged contract accepted; incompatible response type rejected with a breaking-change finding |
+| `npm run api:compatibility` | Working contract passed comparison against local `HEAD` |
+| `npm run api:check` | OpenAPI lint and generated-type drift checks passed |
+| `npm run repository:check`, `npm run repository:test`, `npm run security:test` | Repository policies, nine validator tests, and four scanner-input tests passed |
+| `npm run test:e2e` with Edge | Eight desktop/mobile tests passed and the command exited successfully |
+| `npm run stack:up` and `npm run test:smoke` | Both application images rebuilt; real Keycloak, PostgreSQL, JWT access, persistence, uniqueness, and Next.js rendering passed |
+| `npm run test:api-reference` with Edge | Four desktop/mobile Scalar browser tests passed |
+| Workflow YAML and `git diff --check` | YAML parsed, Windows/baseline jobs checked statically, and whitespace checks passed |
+
+An initial sandboxed frontend browser run completed its assertions but stalled while closing child processes. Only its verified test processes were stopped; the final run with the necessary process-management access exited normally. Backend integration tests used isolated Testcontainers PostgreSQL rather than the existing development database. The smoke test added one verification item to the local catalog.
+
+The existing Podman machine was started without changing its resource settings. After testing, the project stack was stopped without deleting database volumes, and temporary verification tooling was removed. The portable JDK checksum was verified before execution; installed Java and persistent environment settings were unchanged. Hosted GitHub jobs and production deployment behavior were not executed or claimed as passing.
+
+## Windows backend CI and response schema validation: November 16, 2026
+
+The Windows Maven Wrapper now checks its cache directory link target before indexing it. A new Windows CI job uses JDK 25 and the project `backend:unit` command through Command Prompt. The existing Ubuntu backend job retains full PostgreSQL integration verification.
+
+Backend contract tests now select response schemas by operation, status, and media type from the canonical OpenAPI 3.1 document. They validate populated and empty catalog pages, nested fields, format assertions, error responses, and documented response headers. Closed response objects preserve the explicit field policy. Nineteen validator regression cases cover valid data and malformed types, required fields, formats, patterns, lengths, bounds, collection sizes, additional fields, headers, statuses, and media types.
+
+| Check | Observed result |
+| --- | --- |
+| `npm run backend:unit` on Windows with Corretto 25.0.5 | 54 tests passed; zero failures, errors, or skips |
+| `npm run api:generate` and `npm run api:check` | Types regenerated without a generated-file diff; contract lint and type drift checks passed |
+| `npm test` | 15 frontend tests passed |
+| `npm run repository:check` and `npm run repository:test` | Repository policy checks and all nine validator tests passed |
+| `git diff --check` | Passed |
+
+Native verification used a temporary JDK archive from the official Corretto distribution after comparing its SHA-256 with the official checksum. `JAVA_HOME` and the Maven JVM user-home override were scoped to the test command; installed Java and machine configuration were not changed. The temporary toolchain was removed after verification. The final backend run used stable source and contract files; an earlier run overlapped a contract edit and failed the byte-for-byte publication test before the complete suite was rerun.
+
+The GitHub workflow was edited locally, not executed on GitHub. Podman connectivity was unavailable, so `backend:verify`, container builds, smoke tests, and browser tests were not run in this phase. Response validation checks implementation against the current contract; it does not compare an edited contract with a previous released version.
+
 ## English documentation and shared agent policy: November 12, 2026
 
 All maintained documentation was translated into English, including the architecture, development, security, deployment, API, agent tooling, source, ADR, and historical verification documents. Existing commands, technical decisions, dates, and observed test outcomes were preserved. The former translated README filename now contains an English pointer to the canonical README.

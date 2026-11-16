@@ -1,14 +1,16 @@
 # Development and troubleshooting
 
+New contributors should follow the [installation and first-run guide](getting-started.md) before using this page. It separates required host tools from tools provided by containers and covers Windows, Linux, and macOS preparation. Commands on this page use Windows syntax; on Linux and macOS omit `cmd /c` and use `backend/mvnw` instead of `backend\mvnw.cmd` when invoking Maven directly.
+
 ## Local tools
 
 Use Node.js 24 and npm 11.21.2 or a newer npm 11 release for host dependency installation. `packageManager` pins npm 11.21.2 for CI and container builds; `.npmrc` rejects unsupported engines during installation. Older npm releases can silently ignore workspace security overrides or report overridden dependencies as invalid. After reviewing your local tool setup, update npm explicitly with `cmd /c npm install --global npm@11.21.2`. Project scripts do not change global host tools automatically.
 
 For native development, `JAVA_HOME` must point to JDK 25, and Java on `PATH` should preferably use the same version. Container execution does not require a host JDK. A global Maven installation is unnecessary: the official wrapper under `backend` downloads the distribution specified in its properties file. The portable JDK used for initial verification was removed afterward and is not part of this project.
 
-`npm run doctor` checks tool versions, Podman connectivity, the Compose provider, and local configuration availability. It also recognizes Podman in its usual per-user Windows installation directory. Set `PODMAN_BIN` for a custom installation. This command does not create or start a virtual machine.
+`npm run doctor` checks the Node.js major version, reports the available Java version, checks Podman connectivity and the Compose provider, and reports local configuration availability. It also recognizes Podman in its usual per-user Windows installation directory. Set `PODMAN_BIN` for a custom installation. It does not validate npm, ports, free memory, free disk space, Maven cache permissions, or the Testcontainers socket. Missing or incompatible Java is reported without failing the container workflow. This command does not create or start a virtual machine.
 
-When preparing Podman manually, run `podman machine init` only if no machine exists, then `podman machine start`. Do not reconfigure an existing machine without reviewing it. On Windows, Podman uses a Linux machine backed by WSL. Install a Compose provider separately.
+On Windows and macOS, inspect `podman machine list` first. Run `podman machine init` only if no suitable machine exists, then start the selected machine if it is stopped. Do not reconfigure an existing machine without reviewing it. The default Windows provider uses WSL; macOS also runs containers in a Linux machine. Linux can run Podman natively. Install a Compose provider separately.
 
 ## Development with reload
 
@@ -25,6 +27,8 @@ The default PostgreSQL host port is 15432 to avoid a common local PostgreSQL ins
 
 ## Verification layers
 
+Use `npm run verify:quick` for the host checks below through backend unit tests. Use `npm run verify:full` after installing JavaScript dependencies, JDK 25, Go 1.26 or newer, a Playwright browser, a compatible container socket, and starting the development stack. Full verification includes both browser suites and the smoke test, which creates one catalog record. The compatibility tool is optional for application startup. See the [feature workflow](adding-a-feature.md) for the exact check groups and baseline selection.
+
 | Command | Coverage |
 | --- | --- |
 | `npm run repository:check` | English repository text, valid JSON, local links, and shared agent entry points |
@@ -34,12 +38,16 @@ The default PostgreSQL host port is 15432 to avoid a common local PostgreSQL ins
 | `npm run backend:unit` | Domain rules, application services, architecture boundaries, HTTP validation, and JWT security |
 | `npm run backend:verify` | The checks above plus Flyway/JPA against real PostgreSQL through Testcontainers |
 | `npm run api:check` | OpenAPI validity, examples, references, and generated type drift |
+| `npm run api:compatibility -- <base-ref>` | Breaking changes against a Git baseline using versioned oasdiff |
+| `npm run api:compatibility:test` | Real acceptance/rejection regression check for the compatibility tool |
 | `npm run test:api-reference` | Scalar rendering and real GET requests on desktop and mobile; requires the development stack |
 | `npm run check` | ESLint and TypeScript |
 | `npm test` | Contract validation, page parameters, and the frontend HTTP adapter |
 | `npm run build` | Next.js production build |
 | `npm run test:e2e` | Rendering, API failures, keyboard access, and mobile/desktop layouts |
 | `npm run test:smoke` | Real Keycloak, JWT, API, PostgreSQL, slug uniqueness, and Next.js rendering |
+
+CI runs the backend unit, security, architecture, and response-contract tests on both Ubuntu and Windows with JDK 25. The Windows job invokes `npm run backend:unit` through Command Prompt to exercise the Windows Maven Wrapper and the project launcher. Full PostgreSQL integration verification remains in the Ubuntu job; the Windows unit job does not claim to verify a container runtime. Workflow changes require an actual GitHub run to confirm hosted-runner behavior.
 
 The application browser suite runs after the build, starts two dedicated test servers, and stops them after testing. Ports 3100 and 19090 must be available. Its data comes from fixtures; backend integration tests prove real PostgreSQL connectivity.
 

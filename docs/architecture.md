@@ -20,9 +20,13 @@ Browser
 - `catalog/web`: explicit DTOs, input validation, and HTTP mapping.
 - `platform`: security configuration, problem responses, request identifiers, and API documentation.
 
+ArchUnit applies adapter rules to every feature, rejects domain dependencies on JDBC, Hibernate, HTTP, and shared infrastructure, and prevents application code from importing persistence or HTTP adapters. Feature web adapters cannot access persistence directly. Cross-feature dependencies must use explicit `<feature>.api` packages and remain acyclic. Shared technical `platform` web policy can classify infrastructure failures; this exception does not apply to business controllers. Maintained invalid fixtures verify that the rules detect forbidden imports and cycles.
+
 Pagination is bounded to a maximum page size of 50 and page number of 10000. The order `created_at DESC, id DESC` has a matching index. The current model has no lazy relationships; new features must review their query plans and N+1 risks independently. Total counts and offset pagination suit this example. Move to cursor pagination for larger datasets when performance evidence justifies it.
 
 Flyway is the only schema migration authority, and Hibernate only validates the schema. Never edit an applied migration. Timestamps use UTC. Virtual threads do not give the database unlimited capacity; the default connection pool has 10 connections.
+
+Catalog creation uses `EntityManager.persist` for its assigned UUID and flushes within the transaction. It avoids the extra read caused by merging a new entity with an assigned identifier and preserves immediate uniqueness-error mapping. A PostgreSQL integration test checks that creation prepares exactly one INSERT statement. The operation is create-only; updates require their own use case and persistence behavior.
 
 ## Frontend and contract
 

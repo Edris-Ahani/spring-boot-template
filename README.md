@@ -15,14 +15,37 @@ An extensible starting point with a modular backend, an explicit API contract, a
 
 Versions were checked against official sources on November 11, 2026. Java dependencies follow the Spring Boot BOM; JavaScript dependencies are locked in `package-lock.json`.
 
-## Quick start on Windows
+## Prerequisites
 
-Container execution requires Node.js 24, Podman with a running machine, and a Compose provider. Host dependency installation requires npm 11.21.2 or a newer npm 11 release. Running the backend directly also requires JDK 25 and a correctly configured `JAVA_HOME`. The scripts do not install or reconfigure the Podman machine. Run these commands from the project root:
+Start with the [installation and first-run guide](docs/getting-started.md) for Windows, Linux, and macOS. It includes an installation checklist, platform preparation, version checks, and separate container and native development paths.
+
+| Requirement | Run the complete container stack | Develop and test on the host |
+| --- | --- | --- |
+| Node.js | 24.x | 24.x |
+| npm | Use the project-supported 11.21.2 or newer 11.x | 11.21.2 or newer 11.x; required by dependency installation |
+| Podman and a Compose provider | Required; the engine must be reachable | Required for the supplied databases and identity service; backend integration tests also need a Docker-compatible socket |
+| Podman Linux machine | Required on Windows and macOS | Required on Windows and macOS when using Podman |
+| JDK | Supplied by the image build | JDK 25 for backend development and tests, with matching `JAVA_HOME` |
+| Maven, PostgreSQL, and Keycloak installations | Supplied by the wrapper or containers | Maven uses the wrapper; the supplied infrastructure runs PostgreSQL and Keycloak in containers |
+
+Reserve at least 8 GB of free disk space for the initial setup, with additional room for image storage in the Podman machine. See the guide for memory planning, network access, ports, and the limits of cross-platform verification. Docker alone does not satisfy the current `stack:*` scripts, which invoke Podman explicitly.
+
+## Quick start
+
+After completing the prerequisites, run these commands from the project root on Windows. The scripts do not install tools or initialize the Podman machine:
 
 ```bat
 cmd /c npm run setup
 cmd /c npm run doctor
 cmd /c npm run stack:up
+```
+
+On Linux and macOS, use the same npm commands without the Windows `cmd /c` prefix:
+
+```sh
+npm run setup
+npm run doctor
+npm run stack:up
 ```
 
 You do not need to install npm dependencies on the host to run the container stack. Image builds run sequentially, and each build checks for at least 2 GiB of free host disk space. At least 8 GB of free space is recommended for the first complete setup. Use `npm run stack:start` to restart the stack with existing images. Use `npm run stack:build` to build the images without starting services.
@@ -47,6 +70,8 @@ cmd /c npm run stack:down
 All published development ports bind to loopback. The development Compose configuration is unsuitable for public deployment. Read the [deployment guide](docs/deployment.md) and use the separate `infra/production/compose.yml` configuration.
 
 ## Development and testing
+
+After preparing host development tools and installing dependencies, `npm run verify:quick` runs the host check group. `npm run verify:full` also requires a container socket, Go for compatibility checking, Playwright, and a running stack. See the [feature workflow](docs/adding-a-feature.md) for the complete groups and prerequisites. Individual commands remain available below.
 
 ```bat
 cmd /c npm ci
@@ -90,6 +115,8 @@ Selected references from Superpowers, Matt Pocock's skills, Han, Vercel, and Pla
 All maintained documentation, explanations, comments, and agent instructions are written in English. The mandatory language policy is defined in [AGENTS.md](AGENTS.md). Claude, Gemini, Cursor, and Copilot entry points load or reference the same instructions. Run `npm run repository:check` and `npm run repository:test` to verify repository conventions.
 
 - [Architecture and module boundaries](docs/architecture.md)
+- [Adding a feature with a coding assistant](docs/adding-a-feature.md)
+- [Installation, prerequisites, and first run](docs/getting-started.md)
 - [API conventions and Scalar](docs/api-design.md)
 - [Development and troubleshooting](docs/development.md)
 - [Security and limitations](docs/security.md)

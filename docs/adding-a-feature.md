@@ -28,13 +28,13 @@ Read [AGENTS.md](../AGENTS.md), [architecture](architecture.md), and [API conven
 7. Regenerate frontend types with `npm run api:generate`. Update runtime Zod schemas, the server-side backend adapter, and relevant views together. Preserve timeouts, safe failure diagnostics, recoverable UI states, and pagination limits. A generated type does not enforce runtime constraints by itself.
 8. Add tests at the meaningful seams: domain invariants, application behavior, authenticated/unauthenticated HTTP requests, populated and empty responses, and real PostgreSQL behavior. Use the shared response validator with the method and path so schema selection follows the documented status and media type. If you add another application service, supply its test dependency in the MVC slice; keep discovery of all business controllers enabled.
 9. Compare the edited contract with its Git baseline. A runtime response test can pass when code and contract break compatibility together. `npm run api:compatibility -- <base-ref>` provides the separate compatibility check. Do not hide a breaking finding with an ignore rule or by editing the baseline; design a compatible change or introduce a new version while retaining the old one.
-10. Run the checks below, review the complete diff, and report exact results. Keep unrelated work, credentials, local outputs, and temporary files out of the change. Create a local commit only when explicitly requested; leave remote pushes to the user.
+10. After adding or removing maintained template files, review the copy inventory and run `npm run template:sync`, `npm run template:check`, and `npm run template:test`. Run the checks below, review the complete diff, and report exact results. Keep unrelated work, credentials, local outputs, and temporary files out of the change. Create a local commit only when explicitly requested; leave remote pushes to the user.
 
 On Windows, prefix commands with `cmd /c`. On Linux and macOS, run npm commands directly.
 
 ## Verify the change
 
-`npm run verify:quick` runs repository policy checks, scanner-input tests, OpenAPI and generated-type checks, frontend lint/types/unit tests, and backend unit/security/architecture/contract tests. It needs installed JavaScript dependencies and JDK 25 but no container socket.
+`npm run verify:quick` runs repository policy checks, project-generator and scanner-input tests, OpenAPI and generated-type checks, frontend lint/types/unit tests, and backend unit/security/architecture/contract tests. It needs installed JavaScript dependencies and JDK 25 but no container socket.
 
 `npm run verify:full` runs the same shared checks with complete backend verification, then compatibility regression and baseline checks, the production frontend build, browser suites, and the real stack smoke test. Prepare a compatible container socket, Go 1.26 or newer for the pinned compatibility tool, a Playwright browser, and a running development stack first. CI selects Go 1.27.1. The smoke test creates one catalog record. A missing prerequisite must fail the check; do not substitute a different database or silently skip a suite.
 

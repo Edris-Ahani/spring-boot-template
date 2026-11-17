@@ -4,6 +4,8 @@ New contributors should follow the [installation and first-run guide](getting-st
 
 ## Local tools
 
+To create an independent project beside this template, use the [interactive project generator](creating-a-project.md). When adding or removing maintained template files, review them and run `npm run template:sync` before `npm run template:check`.
+
 Use Node.js 24 and npm 11.21.2 or a newer npm 11 release for host dependency installation. `packageManager` pins npm 11.21.2 for CI and container builds; `.npmrc` rejects unsupported engines during installation. Older npm releases can silently ignore workspace security overrides or report overridden dependencies as invalid. After reviewing your local tool setup, update npm explicitly with `cmd /c npm install --global npm@11.21.2`. Project scripts do not change global host tools automatically.
 
 For native development, `JAVA_HOME` must point to JDK 25, and Java on `PATH` should preferably use the same version. Container execution does not require a host JDK. A global Maven installation is unnecessary: the official wrapper under `backend` downloads the distribution specified in its properties file. The portable JDK used for initial verification was removed afterward and is not part of this project.
@@ -29,10 +31,14 @@ The default PostgreSQL host port is 15432 to avoid a common local PostgreSQL ins
 
 Use `npm run verify:quick` for the host checks below through backend unit tests. Use `npm run verify:full` after installing JavaScript dependencies, JDK 25, Go 1.26 or newer, a Playwright browser, a compatible container socket, and starting the development stack. Full verification includes both browser suites and the smoke test, which creates one catalog record. The compatibility tool is optional for application startup. See the [feature workflow](adding-a-feature.md) for the exact check groups and baseline selection.
 
+The inventory check `template:check` runs separately in a Git checkout and in CI. The shared verification groups include `template:test`, which requires neither a Git checkout nor external tools.
+
 | Command | Coverage |
 | --- | --- |
 | `npm run repository:check` | English repository text, valid JSON, local links, and shared agent entry points |
 | `npm run repository:test` | Regression checks for the repository policy validator |
+| `npm run template:test` | Cross-platform generator, naming, fresh credentials, lockfile, copy boundaries, and overwrite protection |
+| `npm run template:check` | Reviewed file inventory matches the template Git checkout; requires Git |
 | `npm run security:test` | Maven security scan input validation and dependency coverage |
 | `npm run security:npm` | Known npm vulnerabilities, including development dependencies; fails at moderate severity or higher |
 | `npm run backend:unit` | Domain rules, application services, architecture boundaries, HTTP validation, and JWT security |

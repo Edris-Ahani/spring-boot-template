@@ -32,6 +32,8 @@ Reserve at least 8 GB of free disk space for the initial setup, with additional 
 
 ## Quick start
 
+To create an independent sibling project, run `node scripts/create-project.mjs` and enter a lowercase name such as `blue-shop`. The generator customizes project and database names and creates fresh local credentials without copying Git history or private files. See [creating a project](docs/creating-a-project.md) for platform-neutral commands, safety behavior, and naming details.
+
 After completing the prerequisites, run these commands from the project root on Windows. The scripts do not install tools or initialize the Podman machine:
 
 ```bat

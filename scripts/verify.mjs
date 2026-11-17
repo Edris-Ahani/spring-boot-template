@@ -5,7 +5,7 @@ if (!["quick", "full"].includes(mode) || !process.env.npm_execpath) {
   console.error("Use npm run verify:quick or npm run verify:full");
   process.exitCode = 1;
 } else {
-  const checks = ["repository:check", "repository:test", "security:test", "api:check", "check", "test",
+  const checks = ["repository:check", "repository:test", "template:test", "security:test", "api:check", "check", "test",
     mode === "full" ? "backend:verify" : "backend:unit"];
   if (mode === "full") checks.push("api:compatibility:test", "api:compatibility", "build", "test:e2e", "test:api-reference", "test:smoke");
   for (const check of checks) {

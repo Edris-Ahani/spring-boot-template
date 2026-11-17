@@ -16,6 +16,7 @@
 
 - Read `docs/architecture.md` and `docs/development.md` before changing behavior.
 - For new features, follow `docs/adding-a-feature.md` and its reference file map and verification workflow.
+- After adding or removing maintained template files, review the copy inventory, run `npm run template:sync`, then `npm run template:check` and `npm run template:test`. Never include private configuration, credentials, local data, or generated output in `template.json`. See `docs/creating-a-project.md`.
 - On Windows, execute shell commands through `cmd /c`. Do not start persistent agent shell sessions.
 - Do not commit, push, deploy, rotate credentials, remove volumes, or change machine configuration without an explicit user request.
 - Do not read `.env` or secret contents into agent output. Never log tokens or request bodies.

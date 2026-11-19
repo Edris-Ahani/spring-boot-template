@@ -42,6 +42,6 @@
     "minimatch@>=7 <11.0.1": "11.0.1"
   },
   "devDependencies": {
-    "@redocly/cli": "2.77.0"
+    "@redocly/cli": "2.79.0"
   }
 }

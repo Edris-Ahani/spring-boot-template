@@ -17,7 +17,7 @@
     <java.version>25</java.version>
     <project.build.outputTimestamp>2026-11-11T00:00:00Z</project.build.outputTimestamp>
     <archunit.version>1.5.1</archunit.version>
-    <scalar.version>0.7.1</scalar.version>
+    <scalar.version>0.10.0</scalar.version>
     <json-schema-validator.version>3.0.9</json-schema-validator.version>
   </properties>
   <dependencies>
